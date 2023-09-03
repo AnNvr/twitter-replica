@@ -4,20 +4,27 @@ import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
 // load tweets from localStorage  
 function loadTweetsFromLocalStorage(){
   const savedTweets = localStorage.getItem("tweetsData")
-
   if (savedTweets){
     const parsedTweets = JSON.parse(savedTweets)
 
-    // clear the existing tweetsData array
-    tweetsData.length = 0
-
-    // push the parsed tweets into the array
-    parsedTweets.forEach((parsedTweet) => {
-      tweetsData.push(parsedTweet)
-    })
-    // tweetsData.forEach((tweet, index) => {
-    //   Object.assign(tweet, parsedTweets[index])
-    // })
+    // Check if the existing tweetsData array is empty
+    if (tweetsData.length === 0) {
+      // If it's empty, simply assign the parsed tweets to it
+      tweetsData.push(...parsedTweets);
+    } else {
+      // If it's not empty, merge the parsed tweets with the existing ones
+      // ensure no duplicates by checking UUIDs
+      parsedTweets.forEach((parsedTweet) => {
+        const existingTweetIndex = tweetsData.findIndex((tweet) => tweet.uuid === parsedTweet.uuid);
+        if (existingTweetIndex === -1) {
+          // Tweet with this UUID doesn't exist in the current data, add it
+          tweetsData.push(parsedTweet);
+        } else {
+          // Tweet with this UUID already exists, update its properties
+          Object.assign(tweetsData[existingTweetIndex], parsedTweet);
+        }
+      });
+    }
   }
 }
 
