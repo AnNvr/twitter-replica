@@ -59,7 +59,7 @@ textarea{
   resize: none;
 }
 
-button{
+#tweet-btn{
   background-color: #1DA1F2;
   border: none;
   color: white;
@@ -68,6 +68,19 @@ button{
   width: 100%; 
   cursor: pointer;
   font-size: 20px;
+  font-weight: 600;
+}
+
+.reply-btn {
+  background-color: #1DA1F2;
+  border: none;
+  color: white;
+  padding: 10px 19px;
+  margin-left: 30px;
+  border-radius: 20px;
+  width: 30%;
+  cursor: pointer;
+  font-size: 15px;
   font-weight: 600;
 }
 
