@@ -1,10 +1,41 @@
 import { tweetsData } from "./data.js";
 import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
 
+// load tweets from localStorage  
+function loadTweetsFromLocalStorage(){
+  const savedTweets = localStorage.getItem("tweetsData")
+
+  if (savedTweets){
+    const parsedTweets = JSON.parse(savedTweets)
+
+    // clear the existing tweetsData array
+    tweetsData.length = 0
+
+    // push the parsed tweets into the array
+    parsedTweets.forEach((parsedTweet) => {
+      tweetsData.push(parsedTweet)
+    })
+    // tweetsData.forEach((tweet, index) => {
+    //   Object.assign(tweet, parsedTweets[index])
+    // })
+  }
+}
+
+// save tweets to localStorage
+function saveTweetsToLocalStorage(){
+  localStorage.setItem("tweetsData", JSON.stringify(tweetsData))
+}
+
+// Call the loadTweetsFromLocalStorage function to load tweets when the script runs
+loadTweetsFromLocalStorage();
+
 document.addEventListener("click", (e) => {
   const likeIcon = e.target.dataset.like
   const retweetIcon = e.target.dataset.retweet
   const replyIcon = e.target.dataset.reply
+  const replyTweet = e.target.dataset.tweetid
+  const deleteTweet = e.target.dataset.delete
+
 
   if (likeIcon){
     handleLikeClick(likeIcon)
@@ -14,6 +45,10 @@ document.addEventListener("click", (e) => {
     handleReplyClick(replyIcon)
   } else if (e.target.id === "tweet-btn"){
     handleTweetBtnClick()
+  } else if (replyTweet){
+    handleReplyToTweet(replyTweet)
+  } else if (deleteTweet){
+    handleDeleteClick(deleteTweet)
   }
 })
 
@@ -37,6 +72,7 @@ function handleLikeClick(tweetId){
       }
       targetTweetObj.isLiked = !targetTweetObj.isLiked
     }
+    saveTweetsToLocalStorage()
     render()
 }
 
@@ -44,24 +80,22 @@ function handleLikeClick(tweetId){
 function handleRetweetClick(tweetId){
   const targetTweetObj = tweetsData.filter((tweet) => tweet.uuid === tweetId)[0]
 
-  if (targetTweetObj){
-    if(targetTweetObj.isRetweeted){
-      targetTweetObj.retweets--
-    } else {
-      targetTweetObj.retweets++
-    }
-    targetTweetObj.isRetweeted = !targetTweetObj.isRetweeted
-  }
+  targetTweetObj.isRetweeted ? targetTweetObj.retweets-- : targetTweetObj.retweets++;
+  targetTweetObj.isRetweeted = !targetTweetObj.isRetweeted
+
+  saveTweetsToLocalStorage()
   render()
 }
 
 function handleReplyClick(replyId){
   document.getElementById(`replies-${replyId}`).classList.toggle("hidden")
+  document.getElementById(`reply-input-${replyId}`).value = "" // Clear the reply input field
 }
 
 function handleTweetBtnClick(){
   const tweetInput = document.getElementById("tweet-input")
   if (tweetInput.value){
+    // Create a new tweet object and push it to tweetsData
     tweetsData.unshift(
       {
         handle: `@AnnoyingMinion`,
@@ -76,12 +110,47 @@ function handleTweetBtnClick(){
       }
     )
     tweetInput.value = ""
+    saveTweetsToLocalStorage()
     render()
   } else {
     window.alert("Tweet something first!")
   }
+}
 
+function handleReplyToTweet(tweetId){
+  // find the target tweet object by its uuid
+  const targetTweetObj = tweetsData.find((tweet) => tweet.uuid === tweetId)
 
+  // check if the target tweet exists and if the reply input has content
+  const replyInput = document.getElementById(`reply-input-${tweetId}`)
+  // add trim() for good practice to handle potential user input errors
+  const replyText = replyInput.value.trim()
+
+    if (targetTweetObj && replyText){
+      // create the new object
+      const reply = {
+        profilePic:"images/minion.jpg",
+        handle: " AnnoyingMinion",
+        tweetText: replyText,
+        uuid: uuidv4()
+      }
+      // add the reply to the replies array
+      targetTweetObj.replies.push(reply)
+      replyInput.value = ""
+
+      saveTweetsToLocalStorage()
+      render()
+    }
+}
+
+function handleDeleteClick(tweetId){
+  // find the index of target tweet by its uuid
+  const tweetIndex = tweetsData.findIndex(tweet => tweet.uuid === tweetId)
+  // remove the tweet from the tweetsData array
+  tweetsData.splice(tweetIndex, 1)
+  // Save the updated tweets to local storage and render
+  saveTweetsToLocalStorage()
+  render()
 }
 
 function getFeedHtml(){
@@ -90,6 +159,8 @@ function getFeedHtml(){
 
     let likeIconClass = tweet.isLiked ? "fa-solid fa-heart liked" : "fa-solid fa-heart"
     let retweetIconClass = tweet.isRetweeted ? "fa-solid fa-retweet retweeted" : "fa-solid fa-retweet"
+    
+    // variable to store the value of the replies boiler template
     let repliesHtml = ""
 
     if (tweet.replies.length > 0){
@@ -128,12 +199,23 @@ function getFeedHtml(){
                     <i class="${retweetIconClass}" data-retweet=${tweet.uuid}></i>
                       ${tweet.retweets}
                   </span>
-              </div>   
+                  <span class="tweet-detail">
+                    <i class="fa-solid fa-trash" data-delete="${tweet.uuid}"></i>
+                  </span>
+              </div>
           </div>            
       </div>
 
-      <div id="replies-${tweet.uuid}" class="hidden">
+      <div class="hidden" id="replies-${tweet.uuid}">
         ${repliesHtml}
+        <div>
+          <textarea
+            class="reply-input"
+            id="reply-input-${tweet.uuid}"
+            placeholder="Reply to this tweet..."
+            ></textarea>
+          <button class="reply-btn" data-tweetid="${tweet.uuid}">Reply</button>
+        </div>
       </div>
 
   </div>
